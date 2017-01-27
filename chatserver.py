@@ -1,28 +1,121 @@
-import socket
+import socket               # Import socket module
 import time
+import select
+import pickle
+import pymysql
+import threading
 
-host = "127.0.0.1"
-port = 5000
 
 clients = []
-s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-s.bind((host, port))
-s.setblocking(0)
+new = []
+tLock = threading.Lock()
 
-quitting = False
-print("Server started")
 
-while not quitting:
-    try:
-        data, addr = s.recvfrom(1024)
-        if "Quit" in str(data):
-            quitting = True
-        if addr not in clients:
-            clients.append(addr)
-        print(time.ctime(time.time())+str(addr)+": :" + str(data))
+db = pymysql.connect("localhost", 'root', 'vfv12345', 'Chat server')
+cursor = db.cursor()
+sql = "SELECT * FROM CREDENTIALS"
+cursor.execute(sql)
+users_list = cursor.fetchall()
+print(users_list)
+
+
+def notify(gone, c = None):
+    print(new)
+
+    if c is not None:
+        dat = pickle.dumps((3, gone),-1)
+        c.send(dat)
+    else:
         for client in clients:
-            s.sendto(data, client)
-    except:
-        pass
+            dat = pickle.dumps((2,new), -1)
+            client[1].send(dat)
+            pass
 
-s.close()
+
+def accepting(s, name):
+    while True:
+        print(1)
+        try:
+            c, addr = s.accept()
+            print('Got connection from', addr, name)
+            ans = 0
+
+            while ans != 1:
+                login_details = c.recv(1024)
+                login_details = pickle.loads(login_details)
+                ans = authenticating(login_details)
+                tLock.acquire()
+                print(ans)
+                if login_details[0] in new:
+                    ans = -2
+
+                c.send(pickle.dumps(ans,-1))
+                if ans == 1:
+                    clients.append((login_details[0],c))
+
+                    new.append(login_details[0])
+                    notify(login_details[0])
+                tLock.release()
+
+        except Exception as e:
+            print(e)
+            continue
+            pass
+
+        finally:
+            pass
+
+        print(login_details[0] + ' Connected')
+
+        string = ''
+        try:
+            while string!='q':
+                string = c.recv(4000)
+                string = pickle.loads(string)
+                tLock.acquire()
+                if string[0] not in new:
+                    notify(string[0], c)
+                else:
+                    for client in clients:
+                        if client[1] != c and client[0]==string[0]:
+                            newdat = pickle.dumps((1,(login_details[0],string[1])),-1)
+                            client[1].send(newdat)
+                tLock.release()
+
+        except ConnectionResetError as cre:
+
+            tLock.acquire()
+            clients.remove((login_details[0],c))
+            new.remove(login_details[0])
+            notify(login_details[0])
+            tLock.release()
+            print(login_details[0] + ' disconnected')
+            pass
+        except Exception as e:
+            print(e)
+        finally:
+            c.close()  # Close the connection
+
+    s.close()
+
+
+def authenticating(login_details):
+    for user in users_list:
+        if user[0].lower()==login_details[0]:
+            if user[1]==login_details[1]:
+                return 1
+            else:
+                return 0
+    return -1
+
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
+host = socket.gethostname() # Get local machine name
+port = 12345                # Reserve a port for your service.
+s.bind((host, port))        # Bind to the port
+s.listen(100)                 # Now wait for client connection.
+
+aT = []
+for i in range(10):
+    aT.append(threading.Thread(target=accepting , args=[s,i]))
+    aT[i].start()
