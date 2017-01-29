@@ -2,7 +2,7 @@
 
 A GUI based python app which includes client desktop app and server script. A user needs to login to connect and chat. Old messages are saved in a database on client side. All users must be on a Local Area Network. Technology Stack: Python, SQL, Tkinter(python GUI module)
 
-<h2>Note: Use python 3</h2>
+<h3>Note: Use python 3</h3>
 
 <h2>How to Use</h2>
 
