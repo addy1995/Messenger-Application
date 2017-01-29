@@ -13,6 +13,4 @@ A GUI based python app which includes client desktop app and server script. A us
 <li>Now run the chatclient script on different Desktop connected through LAN to start chatting</li>
 </ul>
 
-<br><img src="https://raw.githubusercontent.com/addy1995/Grammar-Pro/master/Screenshots/Grammar-pro.PNG"><br>
-<br><img src="https://raw.githubusercontent.com/addy1995/Grammar-Pro/master/Screenshots/Grammar-pro_2.PNG"><br>
-<br><img src="https://raw.githubusercontent.com/addy1995/Grammar-Pro/master/Screenshots/Grammar-pro_3.PNG"><br>
+<br><img src="https://raw.githubusercontent.com/addy1995/CHAT-SERVER/master/Screenshots/Chat-server.PNG"><br>
