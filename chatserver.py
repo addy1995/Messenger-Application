@@ -1,8 +1,8 @@
 import socket               # Import socket module
 import time
-import select
+import os
 import pickle
-import pymysql
+import sqlite3
 import threading
 
 
@@ -10,12 +10,23 @@ clients = []
 new = []
 tLock = threading.Lock()
 
+db_filename = 'Chat-server.db'
+schema_filename = 'create_schema.sql'
 
-db = pymysql.connect("localhost", 'root', 'vfv12345', 'Chat server')
+db_is_new = not os.path.exists(db_filename)
+
+if db_is_new:
+    print("First Add user through add_user.py")
+    exit()
+
+
+db = sqlite3.connect(db_filename)
 cursor = db.cursor()
 sql = "SELECT * FROM CREDENTIALS"
 cursor.execute(sql)
 users_list = cursor.fetchall()
+db.close()
+
 print(users_list)
 
 
@@ -34,7 +45,6 @@ def notify(gone, c = None):
 
 def accepting(s, name):
     while True:
-        print(1)
         try:
             c, addr = s.accept()
             print('Got connection from', addr, name)
@@ -113,7 +123,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket 
 host = socket.gethostname() # Get local machine name
 port = 12345                # Reserve a port for your service.
 s.bind((host, port))        # Bind to the port
-s.listen(100)                 # Now wait for client connection.
+s.listen(10)               # Now wait for client connection.
 
 aT = []
 for i in range(10):
