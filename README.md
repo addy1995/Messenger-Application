@@ -14,5 +14,3 @@ A GUI based python app which includes client desktop app and server script. A us
 </ul>
 
 <br><img src="https://raw.githubusercontent.com/addy1995/CHAT-SERVER/master/Screenshots/Chat-server.PNG"><br>
-<br><img src="https://raw.githubusercontent.com/addy1995/CHAT-SERVER/master/Screenshots/Chat-server_2.PNG"><br>
-
