@@ -5,7 +5,6 @@ import pickle
 import sqlite3
 import threading
 
-
 clients = []
 new = []
 tLock = threading.Lock()
@@ -37,8 +36,9 @@ def notify(gone, c = None):
         dat = pickle.dumps((3, gone),-1)
         c.send(dat)
     else:
+        dat = pickle.dumps((2, new), -1)
         for client in clients:
-            dat = pickle.dumps((2,new), -1)
+
             client[1].send(dat)
             pass
 
@@ -79,7 +79,7 @@ def accepting(s, name):
 
         string = ''
         try:
-            while string!='q':
+            while True:
                 string = c.recv(4000)
                 string = pickle.loads(string)
                 tLock.acquire()
@@ -105,7 +105,6 @@ def accepting(s, name):
             print(e)
         finally:
             c.close()  # Close the connection
-
     s.close()
 
 
