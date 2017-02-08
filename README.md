@@ -9,8 +9,9 @@ A GUI based python app which includes client desktop app and server script. A us
 <h3>Running the application</h3>
 <ul>
 <li>Run the add_user script to add username and password you want to user.</li>
+<li>Put the IP address of your PC in the variable server_IP in both chatserver and chatclient python script.</li>
 <li>Run the chatserver script to start the server.</li>
-<li>Now run the chatclient script on different Desktop connected through LAN to start chatting.</li>
+<li>Now run the chatclient script on same/different PC connected through LAN to start chatting.</li>
 </ul>
 
 <br><img src="https://raw.githubusercontent.com/addy1995/CHAT-SERVER/master/Screenshots/Chat-server.PNG"><br>
