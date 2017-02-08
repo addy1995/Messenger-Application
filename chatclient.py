@@ -12,6 +12,8 @@ import sqlite3
 tLock = threading.Lock()
 LARGE_FONT = ("Verdana", 12)
 
+server_IP = ''  # set Server IP here
+
 db_filename = 'Chat-client.db'
 db_is_new = not os.path.exists(db_filename)
 db = sqlite3.connect(db_filename,check_same_thread=False)
@@ -37,30 +39,59 @@ class Client(Tk):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         while True:
             try:
-                self.s.connect((socket.gethostname(), self.port))
+                self.s.connect((server_IP, self.port))
                 break
             except Exception as e:
                 print(e)
                 time.sleep(5)
 
-
     def listener(self,s):
         try:
             while True:
                 rec = s.recv(4000)
-                new = pickle.loads(rec)
-                if new[0] == 1:
-                    self.q.put((1, new[1][0].capitalize(), new[1][1]))
-                    new_messages.append((new[1][0], 1, new[1][1]))
-                elif new[0] == 2:
-                    self.users = []
-                    for str in new[1]:
-                        self.users.append(str.capitalize())
-                    self.users.remove(self.client.capitalize())
-                    self.mainpage.update()
-                    pass
-                elif new[0] == 3:
-                    print("No such user " + new[1])
+
+                arr = rec.split(b'.')
+
+                for var in range(len(arr)-1):
+                    new = pickle.loads(arr[var] + b'.')
+                    if new[0] == 1 and new[1][0].capitalize() in self.users:
+                        self.q.put((1, new[1][0].capitalize(), new[1][1]))
+                        new_messages.append((new[1][0].capitalize(), 1, new[1][1]))
+                    elif new[0] == 2:
+                        self.users = []
+                        self.online_users = []
+                        for str in new[1]:
+                            self.online_users.append(str.capitalize())
+                            try:
+                                if self.blocked_users[str.capitalize()]:
+                                    pass
+                            except:
+                                self.users.append(str.capitalize())
+                                pass
+                        self.users.remove(self.client.capitalize())
+
+                        self.mainpage.update()
+                        pass
+                    elif new[0] == 3:
+                        print("No such user " + new[1])
+                    elif new[0] == 4:
+                        self.users = []
+                        self.online_users = []
+                        for str in new[1][1]:
+
+                            self.blocked_users[str[0].capitalize()] = 1
+                            self.mainpage.unblock.add_command(label=str[0].capitalize(),command=lambda str=str[0].capitalize():self.unblock_it(str))
+
+                        for str in new[1][0]:
+                            self.online_users.append(str.capitalize())
+                            try:
+                                if self.blocked_users[str.capitalize()]:
+                                    pass
+                            except:
+                                self.users.append(str.capitalize())
+                                pass
+                        self.users.remove(self.client.capitalize())
+                        self.mainpage.update()
 
         except ConnectionResetError:
             messagebox.showerror("Error", "Server stopped")
@@ -91,6 +122,8 @@ class Client(Tk):
                 print("Connected")
                 self.client = username.lower()
                 self.users = []
+                self.online_users = []
+                self.blocked_users = {}
                 self.to = None
                 self.q = Queue()
                 self.mainpage = MainPage(self.container, self)
@@ -100,24 +133,49 @@ class Client(Tk):
                 lT = threading.Thread(target=self.listener, args=[s], name='Listener')
                 lT.daemon = True
                 lT.start()
+
         except ConnectionResetError:
             messagebox.showerror("Error", "Server stopped")
             self.destroy()
 
-    def sendit(self):
+    def send_it(self):
         s = self.s
-
         string = self.mainpage.text.get(1.0,'end-1c')
         string = string.strip()
         if string !='' and self.to != None:
             self.q.put((2,'You',string))
-            message = (self.to.lower(), string)
+            message = (1,self.to.lower(), string)
             message = pickle.dumps( message, -1)
             s.send(message)
             new_messages.append((self.to,2,string))
-
             self.mainpage.text.delete(1.0,END)
         pass
+
+    def block_it(self):
+        s=self.s
+        self.blocked_users[self.mainpage.menu_active] = 1
+        self.mainpage.chats[self.mainpage.menu_active][0].destroy()
+        self.mainpage.chats[self.mainpage.menu_active][1].destroy()
+        self.mainpage.chats.pop(self.mainpage.menu_active)
+        self.users.remove(self.mainpage.menu_active)
+        self.mainpage.unblock.add_command(label=self.mainpage.menu_active,command=lambda str=self.mainpage.menu_active: self.unblock_it(str))
+        self.mainpage.update()
+        message = (2,self.mainpage.menu_active.lower())
+        message = pickle.dumps(message,-1)
+        s.send(message)
+
+    def unblock_it(self,str):
+        self.blocked_users.pop(str)
+        index = self.mainpage.unblock.index(str)
+        self.mainpage.unblock.delete(index,index)
+        if str in self.online_users:
+            self.users.append(str)
+            self.mainpage.update()
+        s = self.s
+        message = (3, str.lower())
+        message = pickle.dumps(message, -1)
+        s.send(message)
+
 
     def log_out(self):
         for to, no, message in new_messages:
@@ -159,14 +217,20 @@ class MainPage(Frame,threading.Thread):
         self.controller = controller
 
         menu = Menu(self,tearoff=0)
-        menu.add_command(label=u'Block')
+        menu.add_command(label=u'Block',command=lambda :self.controller.block_it())
+        menu.add_command(label=u'Clear messages',command=lambda :self.clear_messages())
+
+        menubar = Menu(self)
+        self.unblock = Menu(self,tearoff=0)
+        menubar.add_cascade(label='Unblock', menu=self.unblock)
+        self.controller.config(menu=menubar)
 
         self.sideframe = Frame(self)
         self.listbox = Listbox(self.sideframe)
         self.listbox.pack(fill=BOTH,expand=True,side=TOP,pady=5)
         self.listbox.bind("<1>",lambda e:self.rename_1(e))
         aqua = self.controller.call('tk', 'windowingsystem') == 'aqua'
-        self.listbox.bind('<2>' if aqua else '<3>',  lambda e: self.listbox_menu(e, menu))
+        self.listbox.bind('<2>' if aqua else '<3>',lambda e: self.listbox_menu(e, menu))
         self.listbox.bind("<Key>", self.no_op)
         self.label = Label(self.sideframe,text=self.controller.client.capitalize())
         self.logout = Button(self.sideframe,text="Log Out",command=self.controller.log_out)
@@ -178,14 +242,28 @@ class MainPage(Frame,threading.Thread):
         self.chats = {}
         self.text = Text(self,font = LARGE_FONT,height=2,width=50)
         self.text.grid(row=2,sticky='nswe',column=1,padx=5,pady=5)
-        self.text.bind("<Return>",lambda e:self.controller.sendit())
-        self.button = Button(self, text="Send",command=self.controller.sendit)
+        self.text.bind("<Return>",lambda e:self.controller.send_it())
+        self.button = Button(self, text="Send",command=self.controller.send_it)
         self.button.grid(row=2,sticky='w',column=2)
-        print(self.controller.winfo_width())
-        print(self.controller.winfo_height())
         self.begin = 1
         self.daemon = True
         self.start()
+
+    def clear_messages(self):
+        self.chats[self.menu_active][0].config(state=NORMAL)
+        self.chats[self.menu_active][0].delete('1.0',END)
+        self.chats[self.menu_active][0].config(state=DISABLED)
+        db.execute("DELETE FROM {}_{}".format(self.controller.client,self.menu_active))
+        db.commit()
+        arr = []
+        for item in new_messages:
+            if item[0] == self.menu_active:
+                arr.append(item)
+        for item in arr:
+            new_messages.remove(item)
+
+        pass
+
 
     def listbox_menu(self, event, menu):
         if self.listbox.size() == 0:
@@ -197,7 +275,8 @@ class MainPage(Frame,threading.Thread):
             # Outside of widget.
             return
         item = widget.get(index)
-        print("Do something with", index, item)
+
+        self.menu_active = item
         menu.post(event.x_root, event.y_root)
 
     def no_op(self,event):
@@ -269,7 +348,7 @@ class MainPage(Frame,threading.Thread):
         _, yoffset, _, height = self.listbox.bbox(index)
         if event.y > height + yoffset + 5:  # XXX 5 is a niceness factor :)
             return
-        print(1)
+
         self.controller.to = self.listbox.get(index)
         self.current.config(text=self.controller.to)
         main = self.chats[self.controller.to][0]
@@ -298,6 +377,7 @@ class MainPage(Frame,threading.Thread):
                 temp.config(yscrollcommand=s.set)
                 temp.lower()
                 s.lower()
+
                 temp.configure(bg=self.cget('bg'), relief=GROOVE, state='disabled')
                 temp.tag_config('other', foreground='red')
                 temp.tag_config('me', foreground='green', justify=RIGHT, lmargin1=100)
@@ -311,7 +391,7 @@ class MainPage(Frame,threading.Thread):
                     self.old_messages(dat,user)
                     pass
                 except:
-                    db.execute('create table {}_{}( sender INT, message VARCHAR(40))'.format(self.controller.client, user))
+                    db.execute('create table {}_{}( sender INT, message VARCHAR(4000))'.format(self.controller.client, user))
 
                     pass
 
@@ -336,7 +416,7 @@ class MainPage(Frame,threading.Thread):
                 pass
             else:
                 pass
-        print(self.controller.to)
+
 
 if __name__ == '__main__':
     a = Client(12345)
