@@ -1,6 +1,6 @@
 # CHAT-SERVER
 
-A GUI based python app which includes client desktop app and server script. A user needs to login to connect and chat. Old messages are saved in a database on client side. All users must be on a Local Area Network. Technology Stack: Python, SQL, Tkinter(python GUI module).
+A GUI based python app which includes client desktop app and server script. A user needs to login to connect and chat. All users must be on a Local Area Network. Server script is actually a multithreaded TCP server where each thread controls a single client - its login process, listens to the client messages and sends them to the other clients. Client app includes a user-friendly interface. Clients can even block/unblock other users. Old messages are saved in a database on the client side. Technology Stack: Python, SQL, Tkinter(python GUI module).
 
 <h3>Note: Use python 3</h3>
 
