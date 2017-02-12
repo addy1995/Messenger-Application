@@ -128,10 +128,7 @@ class Client(Tk):
                 self.tkraise(self.mainpage)
                 lT = threading.Thread(target=self.listener, args=[s], name='Listener')
                 lT.daemon = True
-                new = threading.Thread(target=self.loop, name='loop')
-                new.daemon = True
                 lT.start()
-                new.start()
 
 
         except ConnectionResetError:
@@ -157,23 +154,6 @@ class Client(Tk):
             self.mainpage.text.delete(1.0, END)
         pass
 
-    def loop(self):
-        s = self.s
-        string = 'hello mr. .dsad'
-        arr = []
-        for a in range(len(string)):
-            if string[a] == '.':
-                arr.append(a)
-        string = string.replace('.', '')
-        while len(self.users) != 2:
-            pass
-        val = 1
-        while 20 >= val:
-            for var in self.users:
-                message = (1, var.lower(), (arr, string + str(val)))
-                message = pickle.dumps(message, -1)
-                s.send(message)
-            val = val + 1
 
     def block_it(self):
         s = self.s
