@@ -8,7 +8,7 @@ clients = []
 new = []
 tLock = threading.Lock()
 
-server_IP = ''  # Set Server IP here
+server_IP = ''  # Set server IP here
 
 db_filename = 'Chat-server.db'
 schema_filename = 'create_schema.sql'
@@ -25,9 +25,8 @@ cursor = db.cursor()
 sql = "SELECT * FROM CREDENTIALS"
 cursor.execute(sql)
 users_list = cursor.fetchall()
-
-
 print(users_list)
+
 
 def notify(option=None,user=None, c=None):
     if option == 0:
@@ -55,10 +54,12 @@ def notify(option=None,user=None, c=None):
         except Exception as e:
             print(e, 'third')
 
+
 def accepting(s, name):
     while True:
         try:
             c, addr = s.accept()
+
             print('Got connection from', addr, name)
             ans = 0
 
@@ -101,10 +102,9 @@ def accepting(s, name):
         try:
             while True:
                 rec = c.recv(4000)
-
                 arr = rec.split(b'.')
-                for val in range(len(arr)-1):
-                    string = pickle.loads(arr[val] + b'.')
+                for a in range(len(arr)-1):
+                    string = pickle.loads(arr[a]+b'.')
                     tLock.acquire()
                     if string[0] == 1:
                         if string[1] not in new:

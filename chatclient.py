@@ -8,15 +8,14 @@ from tkinter import messagebox
 import os
 import sqlite3
 
-
 tLock = threading.Lock()
 LARGE_FONT = ("Verdana", 12)
 
-server_IP = ''  # set Server IP here
+server_IP = ''  # Set server IP here
 
 db_filename = 'Chat-client.db'
 db_is_new = not os.path.exists(db_filename)
-db = sqlite3.connect(db_filename,check_same_thread=False)
+db = sqlite3.connect(db_filename, check_same_thread=False)
 new_messages = []
 
 
@@ -26,14 +25,14 @@ class Client(Tk):
 
     def __init__(self, val, *a, **ka):
         self.port = val
-        Tk.__init__(self,*a,**ka)
+        Tk.__init__(self, *a, **ka)
         self.title("Messenger")
         self.container = Frame(self)
         self.container.pack()
         self.create_startpage(val)
         self.resizable(0, 0)
 
-    def create_startpage(self,val):
+    def create_startpage(self, val):
         self.signin = StartPage(self.container, self)
         self.signin.grid(row=0, column=0, sticky='nsew', padx=5, pady=5)
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,18 +44,16 @@ class Client(Tk):
                 print(e)
                 time.sleep(5)
 
-    def listener(self,s):
+    def listener(self, s):
         try:
             while True:
                 rec = s.recv(4000)
-
                 arr = rec.split(b'.')
-
-                for var in range(len(arr)-1):
-                    new = pickle.loads(arr[var] + b'.')
+                for a in range(len(arr)-1):
+                    new = pickle.loads(arr[a]+b'.')
                     if new[0] == 1 and new[1][0].capitalize() in self.users:
                         self.q.put((1, new[1][0].capitalize(), new[1][1]))
-                        new_messages.append((new[1][0].capitalize(), 1, new[1][1]))
+
                     elif new[0] == 2:
                         self.users = []
                         self.online_users = []
@@ -78,10 +75,9 @@ class Client(Tk):
                         self.users = []
                         self.online_users = []
                         for str in new[1][1]:
-
                             self.blocked_users[str[0].capitalize()] = 1
-                            self.mainpage.unblock.add_command(label=str[0].capitalize(),command=lambda str=str[0].capitalize():self.unblock_it(str))
-
+                            self.mainpage.unblock.add_command(label=str[0].capitalize(),
+                                                              command=lambda str=str[0].capitalize(): self.unblock_it(str))
                         for str in new[1][0]:
                             self.online_users.append(str.capitalize())
                             try:
@@ -132,7 +128,11 @@ class Client(Tk):
                 self.tkraise(self.mainpage)
                 lT = threading.Thread(target=self.listener, args=[s], name='Listener')
                 lT.daemon = True
+                new = threading.Thread(target=self.loop, name='loop')
+                new.daemon = True
                 lT.start()
+                new.start()
+
 
         except ConnectionResetError:
             messagebox.showerror("Error", "Server stopped")
@@ -140,34 +140,59 @@ class Client(Tk):
 
     def send_it(self):
         s = self.s
-        string = self.mainpage.text.get(1.0,'end-1c')
+        string = self.mainpage.text.get(1.0, 'end-1c')
         string = string.strip()
-        if string !='' and self.to != None:
-            self.q.put((2,'You',string))
-            message = (1,self.to.lower(), string)
-            message = pickle.dumps( message, -1)
+        if string != '' and self.to != None:
+            self.q.put((2, 'You', string))
+            arr = []
+            b = 0
+            for a in range(len(string)):
+                if string[a] == '.':
+                    arr.append(a)
+            string = string.replace('.','')
+            message = (1, self.to.lower(), (arr,string))
+            message = pickle.dumps(message, -1)
             s.send(message)
-            new_messages.append((self.to,2,string))
-            self.mainpage.text.delete(1.0,END)
+            new_messages.append((self.to, 2, string))
+            self.mainpage.text.delete(1.0, END)
         pass
 
+    def loop(self):
+        s = self.s
+        string = 'hello mr. .dsad'
+        arr = []
+        for a in range(len(string)):
+            if string[a] == '.':
+                arr.append(a)
+        string = string.replace('.', '')
+        while len(self.users) != 2:
+            pass
+        val = 1
+        while 20 >= val:
+            for var in self.users:
+                message = (1, var.lower(), (arr, string + str(val)))
+                message = pickle.dumps(message, -1)
+                s.send(message)
+            val = val + 1
+
     def block_it(self):
-        s=self.s
+        s = self.s
         self.blocked_users[self.mainpage.menu_active] = 1
         self.mainpage.chats[self.mainpage.menu_active][0].destroy()
         self.mainpage.chats[self.mainpage.menu_active][1].destroy()
         self.mainpage.chats.pop(self.mainpage.menu_active)
         self.users.remove(self.mainpage.menu_active)
-        self.mainpage.unblock.add_command(label=self.mainpage.menu_active,command=lambda str=self.mainpage.menu_active: self.unblock_it(str))
+        self.mainpage.unblock.add_command(label=self.mainpage.menu_active,
+                                          command=lambda str=self.mainpage.menu_active: self.unblock_it(str))
         self.mainpage.update()
-        message = (2,self.mainpage.menu_active.lower())
-        message = pickle.dumps(message,-1)
+        message = (2, self.mainpage.menu_active.lower())
+        message = pickle.dumps(message, -1)
         s.send(message)
 
-    def unblock_it(self,str):
+    def unblock_it(self, str):
         self.blocked_users.pop(str)
         index = self.mainpage.unblock.index(str)
-        self.mainpage.unblock.delete(index,index)
+        self.mainpage.unblock.delete(index, index)
         if str in self.online_users:
             self.users.append(str)
             self.mainpage.update()
@@ -176,10 +201,8 @@ class Client(Tk):
         message = pickle.dumps(message, -1)
         s.send(message)
 
-
     def log_out(self):
         for to, no, message in new_messages:
-
             db.execute('insert into {}_{} values(?,?)'.format(a.client, to), (no, message))
         try:
             self.s.close()
@@ -195,9 +218,9 @@ class Client(Tk):
 
 class StartPage(Frame):
     def __init__(self, parent, controller):
-        Frame.__init__(self,parent)
-        label_1 = Label(self,text='Username')
-        label_2 = Label(self,text='Password')
+        Frame.__init__(self, parent)
+        label_1 = Label(self, text='Username')
+        label_2 = Label(self, text='Password')
         self.entry_1 = Entry(self)
         self.entry_2 = Entry(self, show="*")
         self.entry_1.bind("<Return>", lambda e: controller.log_in())
@@ -206,54 +229,54 @@ class StartPage(Frame):
         label_2.grid(row=1)
         self.entry_1.grid(row=0, column=1)
         self.entry_2.grid(row=1, column=1)
-        button = Button(self,text='Log in', command=controller.log_in)
-        button.grid(row=2,columnspan=2)
+        button = Button(self, text='Log in', command=controller.log_in)
+        button.grid(row=2, columnspan=2)
 
 
-class MainPage(Frame,threading.Thread):
+class MainPage(Frame, threading.Thread):
     def __init__(self, parent, controller):
         threading.Thread.__init__(self)
-        Frame.__init__(self,parent)
+        Frame.__init__(self, parent)
         self.controller = controller
 
-        menu = Menu(self,tearoff=0)
-        menu.add_command(label=u'Block',command=lambda :self.controller.block_it())
-        menu.add_command(label=u'Clear messages',command=lambda :self.clear_messages())
+        menu = Menu(self, tearoff=0)
+        menu.add_command(label=u'Block', command=lambda: self.controller.block_it())
+        menu.add_command(label=u'Clear messages', command=lambda: self.clear_messages())
 
         menubar = Menu(self)
-        self.unblock = Menu(self,tearoff=0)
+        self.unblock = Menu(self, tearoff=0)
         menubar.add_cascade(label='Unblock', menu=self.unblock)
         self.controller.config(menu=menubar)
 
         self.sideframe = Frame(self)
         self.listbox = Listbox(self.sideframe)
-        self.listbox.pack(fill=BOTH,expand=True,side=TOP,pady=5)
-        self.listbox.bind("<1>",lambda e:self.rename_1(e))
+        self.listbox.pack(fill=BOTH, expand=True, side=TOP, pady=5)
+        self.listbox.bind("<1>", lambda e: self.rename_1(e))
         aqua = self.controller.call('tk', 'windowingsystem') == 'aqua'
-        self.listbox.bind('<2>' if aqua else '<3>',lambda e: self.listbox_menu(e, menu))
+        self.listbox.bind('<2>' if aqua else '<3>', lambda e: self.listbox_menu(e, menu))
         self.listbox.bind("<Key>", self.no_op)
-        self.label = Label(self.sideframe,text=self.controller.client.capitalize())
-        self.logout = Button(self.sideframe,text="Log Out",command=self.controller.log_out)
+        self.label = Label(self.sideframe, text=self.controller.client.capitalize())
+        self.logout = Button(self.sideframe, text="Log Out", command=self.controller.log_out)
         self.logout.pack(side=RIGHT)
         self.label.pack(side=LEFT)
-        self.sideframe.grid(row=0,rowspan=3, column=0, sticky='nswe',padx=5,pady=5)
+        self.sideframe.grid(row=0, rowspan=3, column=0, sticky='nswe', padx=5, pady=5)
         self.current = Label(self)
         self.current.grid(row=0, column=1, pady=5, )
         self.chats = {}
-        self.text = Text(self,font = LARGE_FONT,height=2,width=50)
-        self.text.grid(row=2,sticky='nswe',column=1,padx=5,pady=5)
-        self.text.bind("<Return>",lambda e:self.controller.send_it())
-        self.button = Button(self, text="Send",command=self.controller.send_it)
-        self.button.grid(row=2,sticky='w',column=2)
+        self.text = Text(self, font=LARGE_FONT, height=2, width=50)
+        self.text.grid(row=2, sticky='nswe', column=1, padx=5, pady=5)
+        self.text.bind("<Return>", lambda e: self.controller.send_it())
+        self.button = Button(self, text="Send", command=self.controller.send_it)
+        self.button.grid(row=2, sticky='w', column=2)
         self.begin = 1
         self.daemon = True
         self.start()
 
     def clear_messages(self):
         self.chats[self.menu_active][0].config(state=NORMAL)
-        self.chats[self.menu_active][0].delete('1.0',END)
+        self.chats[self.menu_active][0].delete('1.0', END)
         self.chats[self.menu_active][0].config(state=DISABLED)
-        db.execute("DELETE FROM {}_{}".format(self.controller.client,self.menu_active))
+        db.execute("DELETE FROM {}_{}".format(self.controller.client, self.menu_active))
         db.commit()
         arr = []
         for item in new_messages:
@@ -263,7 +286,6 @@ class MainPage(Frame,threading.Thread):
             new_messages.remove(item)
 
         pass
-
 
     def listbox_menu(self, event, menu):
         if self.listbox.size() == 0:
@@ -275,18 +297,17 @@ class MainPage(Frame,threading.Thread):
             # Outside of widget.
             return
         item = widget.get(index)
-
         self.menu_active = item
         menu.post(event.x_root, event.y_root)
 
-    def no_op(self,event):
+    def no_op(self, event):
         return "break"
 
     def run(self):
 
         while True:
             rec = self.controller.q.get()
-            if rec[0]==1:
+            if rec[0] == 1:
                 try:
                     self.chats[rec[1]]
                     main = self.chats[rec[1]][0]
@@ -294,7 +315,7 @@ class MainPage(Frame,threading.Thread):
                     s = Scrollbar(self)
                     s.grid(row=1, column=3, sticky='ns')
                     main = Text(self, height=10, width=50, font=LARGE_FONT)
-                    main.grid(row=1, columnspan=2,column=1, sticky='nswe', padx=5, pady=5)
+                    main.grid(row=1, columnspan=2, column=1, sticky='nswe', padx=5, pady=5)
                     s.config(command=main.yview)
                     main.config(yscrollcommand=s.set)
                     main.lower()
@@ -307,7 +328,16 @@ class MainPage(Frame,threading.Thread):
                     pass
                 main.configure(state='normal')
                 main.insert(END, rec[1], 'other')
-                main.insert(END, ': ' + rec[2] + '\n')
+                str = rec[2][1]
+                if len(rec[2][0]) != 0:
+                    str = rec[2][1][:rec[2][0][0]]
+                    for a in range(len(rec[2][0])):
+                        if a != len(rec[2][0]) - 1:
+                            str = str + '.' + rec[2][1][rec[2][0][a] - a:rec[2][0][a + 1] - a - 1]
+                        else:
+                            str = str + '.' + rec[2][1][rec[2][0][a] - a:]
+                new_messages.append((rec[1], 1, str))
+                main.insert(END, ': ' + str + '\n')
                 main.configure(state='disabled')
                 main.see(END)
             elif rec[0] == 2:
@@ -321,7 +351,7 @@ class MainPage(Frame,threading.Thread):
                 break
         pass
 
-    def old_messages(self,dat ,user):
+    def old_messages(self, dat, user):
 
         main = self.chats[user][0]
         for sender, message in dat:
@@ -340,7 +370,7 @@ class MainPage(Frame,threading.Thread):
 
         pass
 
-    def rename_1(self,event):
+    def rename_1(self, event):
 
         if self.listbox.size() == 0:
             return
@@ -348,31 +378,30 @@ class MainPage(Frame,threading.Thread):
         _, yoffset, _, height = self.listbox.bbox(index)
         if event.y > height + yoffset + 5:  # XXX 5 is a niceness factor :)
             return
-
         self.controller.to = self.listbox.get(index)
         self.current.config(text=self.controller.to)
         main = self.chats[self.controller.to][0]
         temp = self.chats[self.controller.to][1]
-        main.grid(row=1, columnspan=2,column=1, sticky='nswe', padx=5, pady=5)
+        main.grid(row=1, columnspan=2, column=1, sticky='nswe', padx=5, pady=5)
         temp.grid(row=1, column=3, sticky='ns')
         temp.lift()
         main.lift()
 
     def update(self):
-        self.listbox.delete(0,END)
+        self.listbox.delete(0, END)
 
         for user in self.controller.users:
             try:
                 self.chats[user]
-                self.chats[user][0].grid(row=1, columnspan=2,column=1, sticky='nswe', padx=5, pady=5)
+                self.chats[user][0].grid(row=1, columnspan=2, column=1, sticky='nswe', padx=5, pady=5)
                 self.chats[user][1].grid(row=1, column=3, sticky='ns')
                 self.listbox.insert(END, user)
 
             except:
                 s = Scrollbar(self)
                 temp = Text(self, height=10, width=50, font=LARGE_FONT)
-                temp.grid(row=1, columnspan=2,column=1, sticky='nswe', padx=5, pady=5)
-                s.grid(row=1, column=3,sticky='ns')
+                temp.grid(row=1, columnspan=2, column=1, sticky='nswe', padx=5, pady=5)
+                s.grid(row=1, column=3, sticky='ns')
                 s.config(command=temp.yview)
                 temp.config(yscrollcommand=s.set)
                 temp.lower()
@@ -381,18 +410,18 @@ class MainPage(Frame,threading.Thread):
                 temp.configure(bg=self.cget('bg'), relief=GROOVE, state='disabled')
                 temp.tag_config('other', foreground='red')
                 temp.tag_config('me', foreground='green', justify=RIGHT, lmargin1=100)
-                temp.tag_config('justify', lmargin2=100,lmargin1=100)
+                temp.tag_config('justify', lmargin2=100, lmargin1=100)
                 self.chats[user] = (temp, s)
                 self.listbox.insert(END, user)
                 try:
                     cur = db.cursor()
-                    cur.execute("""select * from {}_{}""".format(self.controller.client,user))
+                    cur.execute("""select * from {}_{}""".format(self.controller.client, user))
                     dat = cur.fetchall()
-                    self.old_messages(dat,user)
+                    self.old_messages(dat, user)
                     pass
                 except:
-                    db.execute('create table {}_{}( sender INT, message VARCHAR(4000))'.format(self.controller.client, user))
-
+                    db.execute(
+                        'create table {}_{}( sender INT, message VARCHAR(4000))'.format(self.controller.client, user))
                     pass
 
         if len(self.controller.users) == 0:
