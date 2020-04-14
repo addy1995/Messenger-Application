@@ -7,7 +7,6 @@ A Messenger Application to connect and chat over local area network. It includes
 <li>Server script is actually a multithreaded TCP server where each thread controls a single client - its login process, listens to the client messages and sends them to the other clients.</li>
 <li>It includes a Python Script to add a new user.</li>
 </ul>
-<br>
 <h3>Features of Messenger Python App</h3>
 <ul>
 <li>Messenger app includes a user-friendly interface.</li>
@@ -19,7 +18,7 @@ Technology Stack: Python, SQL, Tkinter(python GUI module).
 
 <h3>Note: Use python 3</h3>
 
-<h2>How to Use</h2>
+<h2>Steps to get started</h2>
 
 <h3>Running the application</h3>
 <ul>
