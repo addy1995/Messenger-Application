@@ -1,4 +1,4 @@
-# CHAT-SERVER
+# Messenger-Application
 
 A Messenger Application to connect and chat over local area network. It includes 2 main components - User Python App and Server Python Script. A user needs to login to connect and chat. All users must be on a Local Area Network.<br>
 
