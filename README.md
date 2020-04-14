@@ -14,7 +14,7 @@ A Messenger Application to connect and chat over local area network. It includes
 <li>Messages are stored in Client side.</li>
 </ul>
 
-Technology Stack: Python, SQL, Tkinter(python GUI module).
+<h3>Technology Stack:</h3> Python, SQL, Tkinter(python GUI module).
 
 <h3>Note: Use python 3</h3>
 
